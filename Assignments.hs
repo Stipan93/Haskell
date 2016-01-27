@@ -1,10 +1,17 @@
 module AssignmentAndSubmission (
-  listSubmissions
+  listSubmissions,
+  getSubmission,
+  createAssignment,
+  getConfiguration,
+  listFiles,
+  getSubmissionPath
 ) where
 
 import Data.Time
 import Data.Time.Clock.POSIX
 import User
+import Data.Text (Text, unpack, pack)
+import Control.Monad
 import System.Directory
 import Data.List
 import System.FilePath
@@ -61,7 +68,7 @@ conf = Configuration {
 subm = Submission {
   assignment = assgn,
   userId = "Branko",
-  submittedFiles = ["a","b","c"],
+  submittedFiles = ["Homework.hs","review-Janko.txt"],
   reviews = []
 }
 
@@ -124,7 +131,18 @@ getConfiguration assgn = do
 -- | not in a defined permitted list. It will override already made
 -- | submissions.
 -- | Assignment -> File Body -> File Name -> Error indication (?)
---upload :: Assignment -> Text -> String -> IO (Maybe Submission)
+upload :: Assignment -> Submission -> Text -> String -> IO (Maybe Submission)
+upload assgn subm text filename = do
+  let assgnDir = getAssignmentStr assgn
+  config <- getConfiguration assgn
+  when (notElem filename (files config)) $ error "Given file is not permitted."
+  assgnDirExists <- doesDirectoryExist assgnDir
+  when (assgnDirExists == False) $ error "Assignment directory does not exists."
+  let filePath = assgnDir </> (userId subm) </> filename
+  submDirExists <- doesDirectoryExist (assgnDir </> (userId subm))
+  when (submDirExists == False) $ error "Submission directory does not exists."
+  writeFile filePath (unpack text)
+  return $ Just subm
 
 
 -- | Lists the files contained in a submission
